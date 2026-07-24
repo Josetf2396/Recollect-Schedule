@@ -86,17 +86,39 @@
     {%- unless res_keys contains res_fkey -%}
       {%- assign res_n = res_flag.name | downcase -%}
       {%- comment -%} "greenwaste" is yard waste, so it must be tested before "green". {%- endcomment -%}
-      {%- if res_n contains "yard" or res_n contains "leaf" or res_n contains "greenwaste" or res_n contains "green waste" -%}
+      {%- comment -%} "leav" catches the plural "Leaves", which "leaf" misses. {%- endcomment -%}
+      {%- if res_n contains "yard" or res_n contains "leaf" or res_n contains "leav" or res_n contains "greenwaste" or res_n contains "green waste" -%}
         {%- assign res_label = "Yard Waste" -%}
         {%- assign res_icon = icon_yard -%}
       {%- elsif res_n contains "pumpkin" -%}
         {%- assign res_label = "Pumpkins" -%}
         {%- assign res_icon = icon_pumpkin -%}
       {%- elsif res_n contains "green" or res_n contains "organ" or res_n contains "compost" or res_n contains "food" -%}
-        {%- assign res_label = "Green Bin" -%}
+        {%- comment -%}
+          Regional vocabulary: Canadian cities say "Green Bin" / "Green Cart",
+          US cities say "Organics". When the city didn't give us a flag.subject,
+          echo whichever word it used in flag.name and only fall back to the
+          neutral term when the name tells us nothing.
+        {%- endcomment -%}
+        {%- if res_n contains "green" and res_n contains "cart" -%}
+          {%- assign res_label = "Green Cart" -%}
+        {%- elsif res_n contains "green" -%}
+          {%- assign res_label = "Green Bin" -%}
+        {%- else -%}
+          {%- assign res_label = "Organics" -%}
+        {%- endif -%}
         {%- assign res_icon = icon_organics -%}
       {%- elsif res_n contains "recycl" or res_n contains "blue" -%}
-        {%- assign res_label = "Recycling" -%}
+        {%- comment -%} Same split: "Blue Box / Bin / Cart" in Canada, "Recycling" in the US. {%- endcomment -%}
+        {%- if res_n contains "blue" and res_n contains "cart" -%}
+          {%- assign res_label = "Blue Cart" -%}
+        {%- elsif res_n contains "blue" and res_n contains "bin" -%}
+          {%- assign res_label = "Blue Bin" -%}
+        {%- elsif res_n contains "blue" -%}
+          {%- assign res_label = "Blue Box" -%}
+        {%- else -%}
+          {%- assign res_label = "Recycling" -%}
+        {%- endif -%}
         {%- assign res_icon = icon_recycling -%}
       {%- elsif res_n contains "garbage" or res_n contains "trash" or res_n contains "refuse" or res_n contains "solid" -%}
         {%- assign res_label = "Garbage" -%}
