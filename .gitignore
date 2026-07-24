@@ -1,2 +1,2 @@
-# trmnlp build output
-_build/
+.env
+_build/*
