@@ -1,5 +1,5 @@
 {% comment %}
-  Sacramento Waste Collection Plugin - Half Horizontal View
+  Recollect Schedule Plugin - Half Horizontal View
   Optimized for top/bottom split mashups (800×240)
 {% endcomment %}
 
@@ -49,15 +49,11 @@
         {%- comment -%} Only show pickup flags, skip holiday/notification flags {%- endcomment -%}
         {% assign pickup_flags = event.flags | where: "event_type", "pickup" %}
         {% for flag in pickup_flags %}
-          {%- comment -%} Resolve label + icon from the shared lookup (defined in shared.liquid) {%- endcomment -%}
-          {% if type_keys contains flag.name %}
-            {% assign ti = type_keys | split: flag.name | first | split: "|" | size | minus: 1 %}
-            {% assign flag_label = flag.subject | default: type_labels[ti] %}
-            {% assign flag_icon = type_icons[ti] %}
-          {% else %}
-            {% assign flag_label = flag.subject | default: flag.name %}
-            {% assign flag_icon = icon_fallback %}
-          {% endif %}
+          {%- comment -%} Resolve label + icon from the shared resolver (defined in shared.liquid) {%- endcomment -%}
+          {%- capture fkey -%}~{{ flag.name }}~{%- endcapture -%}
+          {%- assign fi = res_keys | split: fkey | first | split: "~" | size | minus: 2 -%}
+          {%- assign flag_label = flag.subject | default: res_labels[fi] -%}
+          {%- assign flag_icon = res_icons[fi] -%}
           <div class="flex flex--col flex--center-x gap-xxs">
             <img src="data:image/svg+xml;base64,{{ flag_icon }}" alt="{{ flag_label }}" width="80" height="80" />
             <div class="description">{{ flag_label }}</div>
@@ -73,8 +69,8 @@
   </div>
 
   <div class="title_bar">
-    <img src="data:image/svg+xml;base64,{{ svg_recycle_bin | base64_encode }}" width="24" height="24" alt="" />
-    <span class="title">Sacramento Waste</span>
+    <img src="data:image/svg+xml;base64,{{ icon_recycling }}" width="24" height="24" alt="" />
+    <span class="title">Waste Collection</span>
     <span class="instance">{{ next_date | date: "%b %-d" }}</span>
   </div>
 {% endif %}

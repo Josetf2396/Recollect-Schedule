@@ -7,7 +7,10 @@ watch:
   - src
 
 # values of custom fields (defined in src/settings.yml)
-custom_fields: {}
+custom_fields:
+  # Sacramento, CA — swap for any Recollect city's "Add to calendar" link to test
+  calendar_url: https://api.recollect.net/api/places/EE0C3310-C0C3-11E6-8A10-F4110BA3B673/services/340/events.en-US.ics
+  address: 915 I St, Sacramento
 
 # override variables
 variables:
