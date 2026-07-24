@@ -55,5 +55,5 @@ custom_fields:
   description: A friendly name for your location to show on the display
   placeholder: 1 King Street, Oshawa
   optional: true
-name: Sacramento Waste Collection
+name: Recollect schedule
 refresh_interval: 15
