@@ -1,0 +1,59 @@
+---
+strategy: polling
+no_screen_padding: 'no'
+dark_mode: 'no'
+static_data: ''
+polling_verb: get
+framework_version: 2.3.7
+serverless_language: ''
+polling_url: 'https://api.recollect.net/api/places/{{ place_id }}/services/{{ service_id }}/events?nomerge=1&hide=reminder_only&after={{ "now" | date: "%Y-%m-%d" }}&before={{ "now" | date: "%s" | plus: 2592000 | date: "%Y-%m-%d" }}&locale=en'
+polling_headers: user-agent=TRMNL-Durham-Waste/1.0
+polling_body: ''
+id: 392941
+oauth_enabled: 'false'
+oauth_pkce_enabled: 'no'
+oauth_authorize_url: ''
+oauth_token_url: ''
+oauth_scopes: ''
+oauth_scope_separator: ''
+oauth_refresh_url: ''
+oauth_auth_params: ''
+oauth_token_headers: ''
+oauth_token_site: ''
+oauth_token_params: ''
+oauth_token_request_auth_method: ''
+oauth_body_format: ''
+oauth_token_response_metadata: ''
+oauth_authorization_method: ''
+oauth_refresh_params: ''
+oauth_token_field_name: ''
+oauth_expiry_field_name: ''
+oauth_expiry_strategy: ''
+oauth_fixed_expiry_ms: ''
+custom_fields:
+- keyname: author_bio
+  name: About This Plugin
+  field_type: author_bio
+  category: life,environment
+  description: "Durham Waste Collection displays your next garbage, recycling, green bin, and yard waste pickup dates directly on your TRMNL device.\n<br><br>\n<strong>Features:</strong><br>\n\U0001F5D3️ Real-time updates from Durham Region API<br>\n♻️ All collection types (Blue Box, Green Bin, Garbage, Yard Waste)<br>\n\U0001F4F1 Optimized layouts for all TRMNL view sizes<br>\n\U0001F3A8 Beautiful icons for each collection type<br>\n⏰ Countdown display showing days until next pickup\n<br><br>\n<strong>Setup:</strong><br>\n1. Visit our Configuration Helper to find your Place ID:<br><a href=\"https://hossain-khan.github.io/trmnl-next-pickup-plugin/\">https://hossain-khan.github.io/trmnl-next-pickup-plugin/</a><br>\n2. Enter your Durham Region address<br>\n3. Copy the configuration values<br>\n4. Paste them into the plugin form fields below\n<br><br>\nThat's it! Your plugin will automatically refresh with the latest pickup schedule.\n<br><br>\n<strong>Note:</strong> This plugin is designed for Durham Region, Ontario residents only.\n"
+  github_url: https://github.com/hossain-khan/trmnl-next-pickup-plugin
+  learn_more_url: https://hossain-khan.github.io/trmnl-next-pickup-plugin/
+  email_address: trmnl@hossain.dev
+- keyname: place_id
+  field_type: string
+  name: Place ID
+  description: Your unique location ID from Recollect. Find it easily at <a href="https://hossain-khan.github.io/trmnl-next-pickup-plugin/">our Configuration Helper</a>.
+  placeholder: 918DB048-D91A-11E8-B83E-68F5AF88FEB0
+- keyname: service_id
+  field_type: string
+  name: Service ID
+  description: Durham waste collection service ID
+  placeholder: '257'
+- keyname: address
+  field_type: string
+  name: Display Address
+  description: A friendly name for your location to show on the display
+  placeholder: 1 King Street, Oshawa
+  optional: true
+name: Sacramento Waste Collection
+refresh_interval: 15

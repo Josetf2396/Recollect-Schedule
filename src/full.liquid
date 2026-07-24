@@ -1,0 +1,120 @@
+{% comment %}
+Sacramento Waste Collection Plugin - Full View
+Shows next pickup date and all collection types
+{% endcomment %}
+
+{% assign today = "now" | date: "%Y-%m-%d" %}
+{%- comment -%} Filter out holiday events, only show actual pickup days {%- endcomment -%}
+{% assign next_events = events | where_exp: "event", "event.day >= today and event.is_holiday != 1" | sort: "day" %}
+{%- comment -%} Get upcoming holidays for informational display {%- endcomment -%}
+{% assign upcoming_holidays = events | where_exp: "event", "event.is_holiday == 1 and event.day >= today" | sort: "day" | slice: 0, 3 %}
+
+{% if next_events.size == 0 %}
+{%- comment -%} No upcoming events {%- endcomment -%}
+<div class="flex flex--col flex--center gap">
+  <div class="title">No Upcoming Pickups</div>
+  <div class="description">Check back later for your schedule</div>
+</div>
+{% else %}
+{% assign next_date = next_events.first.day %}
+{% assign next_pickup_events = next_events | where: "day", next_date %}
+
+{%- comment -%} Calculate days until pickup {%- endcomment -%}
+{% assign next_timestamp = next_date | date: "%s" %}
+{% assign today_timestamp = today | date: "%s" %}
+{% assign seconds_diff = next_timestamp | minus: today_timestamp %}
+{% assign days_until = seconds_diff | divided_by: 86400 %}
+
+{%- comment -%} Find the next upcoming street sweeping date (event_type notification_with_date, so it's not a pickup flag) {%- endcomment -%}
+{% assign next_sweeping = "" %}
+{% assign all_sorted = events | sort: "day" %}
+{% for sweep_event in all_sorted %}
+{% if next_sweeping == "" and sweep_event.day >= today %}
+{% assign sweep_flags = sweep_event.flags | where: "name", "StreetSweeping" %}
+{% if sweep_flags.size > 0 %}{% assign next_sweeping = sweep_event.day %}{% endif %}
+{% endif %}
+{% endfor %}
+
+<div class="layout layout--col layout--center-x layout--center-y gap-lg">
+  {%- comment -%} Typography hierarchy: title--small + value {%- endcomment -%}
+  <div class="flex flex--col flex--center-x gap-xxs">
+    <div class="title--small">Next Pickup</div>
+    <div class="value">
+      {% if days_until == 0 %}
+      Today
+      {% elsif days_until == 1 %}
+      Tomorrow
+      {% else %}
+      In {{ days_until }} days
+      {% endif %}
+    </div>
+    <div class="description">{{ next_date | date: "%A, %B %-d" }}</div>
+  </div>
+
+  {%- comment -%} Icon Display - Using Framework flex classes {%- endcomment -%}
+  <div class="flex flex--row flex--center-x flex--wrap gap-lg px-lg py-lg bg-1">
+    {% for event in next_pickup_events %}
+    {%- comment -%} Only show pickup flags, skip holiday flags {%- endcomment -%}
+    {% assign pickup_flags = event.flags | where: "event_type", "pickup" %}
+    {% for flag in pickup_flags %}
+    {%- comment -%} Resolve label + icon from the shared lookup (defined in shared.liquid) {%- endcomment -%}
+    {% if type_keys contains flag.name %}
+    {% assign ti = type_keys | split: flag.name | first | split: "|" | size | minus: 1 %}
+    {% assign flag_label = flag.subject | default: type_labels[ti] %}
+    {% assign flag_icon = type_icons[ti] %}
+    {% else %}
+    {% assign flag_label = flag.subject | default: flag.name %}
+    {% assign flag_icon = icon_fallback %}
+    {% endif %}
+    <div class="flex flex--col flex--center-x gap-xs">
+      <div>
+        <img src="data:image/svg+xml;base64,{{ flag_icon }}" alt="{{ flag_label }}" width="136" height="136" />
+      </div>
+      <div class="description">{{ flag_label }}</div>
+    </div>
+    {% endfor %}
+    {% endfor %}
+  </div>
+
+  {%- comment -%} Context sentence {%- endcomment -%}
+  <div class="description">
+    Set containers curbside by 6 AM.
+  </div>
+
+  {%- comment -%} Next street sweeping (move your car to avoid a ticket) {%- endcomment -%}
+  {% if next_sweeping != blank %}
+  {% assign sweep_timestamp = next_sweeping | date: "%s" %}
+  {% assign sweep_days = sweep_timestamp | minus: today_timestamp | divided_by: 86400 %}
+  <div class="flex flex--row flex--center-x gap-xs mt-xs">
+    <span class="label label--inverted">
+      Street Sweeping: {{ next_sweeping | date: "%a, %b %-d" }}{% if sweep_days <= 7 %} ({{ sweep_days }}d){% endif %}
+    </span>
+  </div>
+  {% endif %}
+
+  {%- comment -%} Upcoming Holidays Display {%- endcomment -%}
+  {% if upcoming_holidays.size > 0 %}
+  <div class="flex flex--col flex--center-x gap-xs mt-xs">
+    <div class="flex flex--row flex--center-x flex--wrap gap-xs">
+      {% for holiday in upcoming_holidays %}
+      {% assign holiday_timestamp = holiday.day | date: "%s" %}
+      {% assign holiday_days = holiday_timestamp | minus: today_timestamp | divided_by: 86400 %}
+      {% assign holiday_flag = holiday.flags | first %}
+      {% assign holiday_label = holiday_flag.subject | default: holiday_flag.name | default: "Holiday" %}
+      <span class="label label--inverted">
+        {{ holiday_label }}: {{ holiday.day | date: "%b %-d" }}
+        {% if holiday_days <= 7 %} ({{ holiday_days }}d){% endif %}
+      </span>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="title_bar">
+  <img src="data:image/svg+xml;base64,{{ svg_recycle_bin | base64_encode }}" width="24" height="24" alt="" />
+  <span class="title">Sacramento Waste Collection</span>
+  <span class="subtitle">{{ address | default: "Sacramento" }}</span>
+  <span class="instance">Service {{ service_id }} · {{ next_date | date: "%a, %b %-d" }}</span>
+</div>
+{% endif %}

@@ -1,0 +1,82 @@
+{% comment %}
+  Sacramento Waste Collection Plugin - Half Vertical View
+  Optimized for left/right split mashups (400×480)
+{% endcomment %}
+
+{% assign today = "now" | date: "%Y-%m-%d" %}
+{%- comment -%} Filter out holiday events, only show actual pickup days {%- endcomment -%}
+{% assign next_events = events | where_exp: "event", "event.day >= today and event.is_holiday != 1" | sort: "day" %}
+
+{% if next_events.size == 0 %}
+  <div class="flex flex--col flex--center gap">
+    <div class="title">No Pickups</div>
+    <div class="description">Check schedule</div>
+  </div>
+{% else %}
+  {% assign next_date = next_events.first.day %}
+  {% assign next_pickup_events = next_events | where: "day", next_date %}
+
+  {% assign next_timestamp = next_date | date: "%s" %}
+  {% assign today_timestamp = today | date: "%s" %}
+  {% assign days_until = next_timestamp | minus: today_timestamp | divided_by: 86400 %}
+
+  {%- comment -%} Find the next upcoming street sweeping date {%- endcomment -%}
+  {% assign next_sweeping = "" %}
+  {% assign all_sorted = events | sort: "day" %}
+  {% for sweep_event in all_sorted %}
+    {% if next_sweeping == "" and sweep_event.day >= today %}
+      {% assign sweep_flags = sweep_event.flags | where: "name", "StreetSweeping" %}
+      {% if sweep_flags.size > 0 %}{% assign next_sweeping = sweep_event.day %}{% endif %}
+    {% endif %}
+  {% endfor %}
+
+  <div class="layout layout--col layout--top gap">
+    {%- comment -%} Typography hierarchy: title--small + value {%- endcomment -%}
+    <div class="flex flex--col flex--center-x gap-xxs mt-xs">
+      <div class="title--small">Next Pickup</div>
+      <div class="value">
+        {% if days_until == 0 %}Today
+        {% elsif days_until == 1 %}Tomorrow
+        {% else %}{{ days_until }} days
+        {% endif %}
+      </div>
+      <div class="description">{{ next_date | date: "%b %-d" }}</div>
+    </div>
+
+    {%- comment -%} Icons Grid - 2 columns using flex {%- endcomment -%}
+    <div class="flex flex--row flex--wrap flex--center-x gap">
+      {% for event in next_pickup_events %}
+        {%- comment -%} Only show pickup flags, skip holiday/notification flags {%- endcomment -%}
+        {% assign pickup_flags = event.flags | where: "event_type", "pickup" %}
+        {% for flag in pickup_flags %}
+          {%- comment -%} Resolve label + icon from the shared lookup (defined in shared.liquid) {%- endcomment -%}
+          {% if type_keys contains flag.name %}
+            {% assign ti = type_keys | split: flag.name | first | split: "|" | size | minus: 1 %}
+            {% assign flag_label = flag.subject | default: type_labels[ti] %}
+            {% assign flag_icon = type_icons[ti] %}
+          {% else %}
+            {% assign flag_label = flag.subject | default: flag.name %}
+            {% assign flag_icon = icon_fallback %}
+          {% endif %}
+          <div class="flex flex--col flex--center-x gap-xxs">
+            <div>
+              <img src="data:image/svg+xml;base64,{{ flag_icon }}" alt="{{ flag_label }}" width="96" height="96" />
+            </div>
+            <div class="description">{{ flag_label }}</div>
+          </div>
+        {% endfor %}
+      {% endfor %}
+    </div>
+
+    {%- comment -%} Next street sweeping {%- endcomment -%}
+    {% if next_sweeping != blank %}
+      <div class="description">Street Sweeping: {{ next_sweeping | date: "%b %-d" }}</div>
+    {% endif %}
+  </div>
+
+  <div class="title_bar">
+    <img src="data:image/svg+xml;base64,{{ svg_recycle_bin | base64_encode }}" width="24" height="24" alt="" />
+    <span class="title">Sacramento Waste</span>
+    <span class="instance">{{ next_date | date: "%b %-d" }}</span>
+  </div>
+{% endif %}
