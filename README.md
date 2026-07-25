@@ -141,9 +141,17 @@ cities say "Organics" and "Recycling" — whichever word the city itself used wi
 | `Organics`, `FoodScraps`, `Compost` | Organics | organics |
 | `YardWaste`, `Leaves`, `GreenWaste` | Yard Waste | yard waste |
 | `BlueBox` / `BlueBin` / `BlueCart` | Blue Box / Bin / Cart | recycling |
+| `recycling_glass` (Portland's split stream) | Glass | recycling |
+| `Batteries` | Batteries | recycling |
 | `Recycling` | Recycling | recycling |
 | `Garbage`, `Trash`, `SolidWaste`, `Refuse` | Garbage | garbage |
-| anything else | the city's own name for it | recycling |
+| anything else | the city's own name for it | **garbage bag** |
+
+Glass must be matched *before* generic recycling — `recycling_glass` contains both words, and
+since same-day types dedupe by label, flattening it to "Recycling" made Portland's glass bin
+vanish from the display entirely. The last row is the safety net: a pickup the classifier has
+never seen still shows up, labeled with the city's own (humanized) name and drawn as a garbage
+bag so it reads as something going to the curb.
 
 Note the ordering: `green waste` means *yard waste* in the US, so it's matched before `green` →
 organics. That one collision is why the keyword chain is order-sensitive — first match wins.

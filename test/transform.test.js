@@ -17,6 +17,7 @@ const { run, classify, parseDay, localToday, humanize, ICON_ORDER } = require(".
 const sacramento = require("./fixtures/sacramento.json");
 const durham = require("./fixtures/durham.json");
 const nashville = require("./fixtures/nashville.json");
+const portland = require("./fixtures/portland.json");
 
 /** Freeze the clock so day-math assertions don't drift. */
 function at(utcMs, fn) {
@@ -103,8 +104,9 @@ test("ICON_ORDER matches the icon table in shared.liquid", () => {
   const capture = /\{%-\s*capture icons_joined\s*-%\}([\s\S]*?)\{%-\s*endcapture\s*-%\}/.exec(shared);
   assert.ok(capture, "shared.liquid must define the icons_joined capture");
   const table = [...capture[1].matchAll(/icon_([a-z]+)/g)].map((m) => m[1]);
-  // "other" has no icon of its own; it reuses recycling as the neutral stand-in.
-  const expected = ICON_ORDER.map((key) => (key === "other" ? "recycling" : key));
+  // "other" has no icon of its own; an unrecognized pickup shows the garbage
+  // bag so it still reads as something going to the curb.
+  const expected = ICON_ORDER.map((key) => (key === "other" ? "garbage" : key));
   assert.deepEqual(table, expected, "reorder either side and this fails instead of drawing the wrong bin");
 });
 
@@ -159,6 +161,28 @@ test("separates pickups, holidays and dated notices", () => {
 
   const withHoliday = at(Date.UTC(2026, 6, 24), () => run(durham));
   assert.equal(withHoliday.holidays[0].label, "Civic Holiday");
+});
+
+test("split-stream recycling keeps its own bin (Portland glass)", () => {
+  // Portland puts out four bins: garbage_e4w, recycling, recycling_glass,
+  // organics — all event_type pickup, all on the same day. recycling_glass
+  // used to classify as generic "Recycling", and because same-day types
+  // dedupe by label, the glass bin silently vanished from the display.
+  const result = at(Date.UTC(2026, 6, 24, 12), () => run(portland));
+  const bins = labels(result);
+  assert.ok(bins.includes("Recycling"), `got ${bins}`);
+  assert.ok(bins.includes("Glass"), "the glass bin must not collapse into Recycling");
+  assert.ok(bins.includes("Garbage"), "garbage_e4w is still garbage");
+  assert.ok(bins.includes("Organics"), "US city with no subject says Organics");
+  assert.equal(result.area, "CityofPortlandOR");
+});
+
+test("glass and batteries classify apart from generic recycling", () => {
+  const glass = classify({ name: "recycling_glass" });
+  assert.equal(glass.label, "Glass");
+  assert.equal(glass.icon, ICON_ORDER.indexOf("recycling"), "shares the recycling icon");
+  assert.equal(classify({ name: "Batteries" }).label, "Batteries");
+  assert.equal(classify({ name: "recycling" }).label, "Recycling", "plain recycling unchanged");
 });
 
 test("a seasonal service months away still surfaces (Nashville brush)", () => {

@@ -57,10 +57,10 @@
   Index order MUST match ICON_ORDER in src/transform.js:
     0 garbage  1 recycling  2 organics  3 yard  4 pumpkin  5 other
 
-  "other" reuses the recycling icon as a neutral stand-in for a type
-  we do not recognize; the transform still passes through the city's
-  own name for it as the label.
+  "other" reuses the garbage-bag icon: a pickup we do not recognize
+  still reads as something going to the curb, and the transform still
+  passes through the city's own name for it as the label.
   ================================================================
 {%- endcomment -%}
-{%- capture icons_joined -%}{{ icon_garbage }}~~~{{ icon_recycling }}~~~{{ icon_organics }}~~~{{ icon_yard }}~~~{{ icon_pumpkin }}~~~{{ icon_recycling }}{%- endcapture -%}
+{%- capture icons_joined -%}{{ icon_garbage }}~~~{{ icon_recycling }}~~~{{ icon_organics }}~~~{{ icon_yard }}~~~{{ icon_pumpkin }}~~~{{ icon_garbage }}{%- endcapture -%}
 {%- assign icons = icons_joined | split: "~~~" -%}

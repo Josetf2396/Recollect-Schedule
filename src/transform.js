@@ -148,6 +148,14 @@ function classify(flag) {
     if (n.includes("green") && n.includes("cart")) label = "Green Cart";
     else if (n.includes("green")) label = "Green Bin";
     else label = "Organics";
+  } else if (includesAny(n, "glass", "batter")) {
+    // Split-stream recycling: Portland's "recycling_glass" is a separate bin
+    // (glass, with household batteries bagged on top). This branch must run
+    // before the generic recycling one — the name contains both words, and
+    // flattening it to "Recycling" made the glass bin vanish entirely, because
+    // same-day types dedupe by label.
+    key = "recycling";
+    label = n.includes("glass") ? "Glass" : "Batteries";
   } else if (includesAny(n, "recycl", "blue")) {
     key = "recycling";
     if (n.includes("blue") && n.includes("cart")) label = "Blue Cart";
@@ -158,7 +166,8 @@ function classify(flag) {
     key = "garbage";
     label = "Garbage";
   } else {
-    // Unknown type: show the city's own name for it.
+    // Unknown type: show the city's own name for it, with the garbage-bag
+    // icon so it still reads as something going to the curb.
     key = "other";
     label = humanize(name);
   }
