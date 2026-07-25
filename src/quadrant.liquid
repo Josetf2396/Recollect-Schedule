@@ -1,74 +1,46 @@
 {% comment %}
   Recollect Schedule Plugin - Quarter View
   Ultra-compact for 2x2 grid mashups - optimized for icon-first display
+
+  Data is precomputed in src/transform.js; this view only lays it out.
 {% endcomment %}
 
-{% assign today = "now" | date: "%Y-%m-%d" %}
-{%- comment -%} Filter out holiday events, only show actual pickup days {%- endcomment -%}
-{% assign next_events = events | where_exp: "event", "event.day >= today and event.is_holiday != 1" | sort: "day" %}
-
-{% if next_events.size == 0 %}
+{% unless has_pickups %}
   <div class="flex flex--col flex--center gap">
     <div class="description">No Pickups</div>
   </div>
 {% else %}
-  {% assign next_date = next_events.first.day %}
-  {% assign next_pickup_events = next_events | where: "day", next_date %}
-
-  {% assign next_timestamp = next_date | date: "%s" %}
-  {% assign today_timestamp = today | date: "%s" %}
-  {% assign days_until = next_timestamp | minus: today_timestamp | divided_by: 86400 %}
-
-  {%- comment -%} Find the next upcoming street sweeping date {%- endcomment -%}
-  {% assign next_sweeping = "" %}
-  {% assign all_sorted = events | sort: "day" %}
-  {% for sweep_event in all_sorted %}
-    {% if next_sweeping == "" and sweep_event.day >= today %}
-      {% assign sweep_flags = sweep_event.flags | where: "name", "StreetSweeping" %}
-      {% if sweep_flags.size > 0 %}{% assign next_sweeping = sweep_event.day %}{% endif %}
-    {% endif %}
-  {% endfor %}
-
   <div class="layout layout--col layout--top gap">
     {%- comment -%} Compact header {%- endcomment -%}
     <div class="flex flex--col flex--center-x gap-xxs mt-xs">
       <div class="title--small">Pickup</div>
       <div class="value value--small">
-        {% if days_until == 0 %}Today
-        {% elsif days_until == 1 %}Tmrw
-        {% else %}{{ days_until }}d
+        {% if next.days_until == 0 %}Today
+        {% elsif next.days_until == 1 %}Tmrw
+        {% else %}{{ next.days_until }}d
         {% endif %}
       </div>
     </div>
 
     {%- comment -%} Icon row with compact spacing and labels {%- endcomment -%}
     <div class="flex flex--row flex--wrap flex--center-x gap-xs">
-      {% for event in next_pickup_events %}
-        {%- comment -%} Only show pickup flags, skip holiday/notification flags {%- endcomment -%}
-        {% assign pickup_flags = event.flags | where: "event_type", "pickup" %}
-        {% for flag in pickup_flags %}
-          {%- comment -%} Resolve label + icon from the shared resolver (defined in shared.liquid) {%- endcomment -%}
-          {%- capture fkey -%}~{{ flag.name }}~{%- endcapture -%}
-          {%- assign fi = res_keys | split: fkey | first | split: "~" | size | minus: 2 -%}
-          {%- assign flag_label = flag.subject | default: res_labels[fi] -%}
-          {%- assign flag_icon = res_icons[fi] -%}
-          <div class="flex flex--col flex--center-x gap-xxs">
-            <img src="data:image/svg+xml;base64,{{ flag_icon }}" alt="{{ flag_label }}" width="72" height="72" />
-            <div class="description text--sm">{{ flag_label }}</div>
-          </div>
-        {% endfor %}
+      {% for type in next.types %}
+        <div class="flex flex--col flex--center-x gap-xxs">
+          <img src="data:image/svg+xml;base64,{{ icons[type.icon] }}" alt="{{ type.label }}" width="72" height="72" />
+          <div class="description text--sm">{{ type.label }}</div>
+        </div>
       {% endfor %}
     </div>
 
-    {%- comment -%} Next street sweeping {%- endcomment -%}
-    {% if next_sweeping != blank %}
-      <div class="description text--sm">Sweep: {{ next_sweeping | date: "%b %-d" }}</div>
+    {%- comment -%} Next dated notice, e.g. street sweeping {%- endcomment -%}
+    {% if notices.size > 0 %}
+      <div class="description text--sm">{{ notices.first.label }}: {{ notices.first.short }}</div>
     {% endif %}
   </div>
 
   <div class="title_bar">
     <img src="data:image/svg+xml;base64,{{ icon_recycling }}" width="24" height="24" alt="" />
     <span class="title">Waste Collection</span>
-    <span class="instance">{{ next_date | date: "%b %-d" }}</span>
+    <span class="instance">{{ next.short }}</span>
   </div>
-{% endif %}
+{% endunless %}

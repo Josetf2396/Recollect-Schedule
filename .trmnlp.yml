@@ -14,4 +14,10 @@ custom_fields:
 
 # override variables
 variables:
-  trmnl: {}
+  trmnl:
+    user:
+      # src/transform.js reads this to work out the user's *local* calendar date
+      # before computing "days until pickup". Without it the preview falls back
+      # to UTC, which reads a day ahead all evening in North America.
+      # -25200 = UTC-7 (Sacramento, PDT). Match your own city when previewing.
+      utc_offset: -25200

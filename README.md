@@ -50,12 +50,55 @@ JSON events endpoint, extracting both IDs with Liquid filters and requesting a 3
 /api/places/{place_id}/services/{service_id}/events?nomerge=1&hide=reminder_only&after=…&before=…&locale=en
 ```
 
+`after` starts a **day early** on purpose. It's rendered from the server's UTC clock, while
+"today" on the display is the user's *local* date — so an evening poll in North America (where
+UTC has already rolled over) would otherwise fetch a window starting tomorrow, and a pickup
+that's still "today" for the user would never reach the transform. The transform drops anything
+before the local date, so the extra day never shows stale events.
+
 Two things worth knowing about the upstream API:
 
 - **`client_id` is not required.** It's an ICS-only parameter; the JSON endpoint ignores it. It's
   harmless to leave in the pasted URL.
 - **Use JSON, not `.ics`.** The `.ics` endpoint rate-limits aggressively (`429`); the JSON endpoint
   is what the plugin polls.
+
+### Everything is computed once, in a transform
+
+[`src/transform.js`](src/transform.js) is a serverless transform: it runs once per poll and its
+return value becomes the template merge data. The four views are pure layout — they contain no
+filtering, sorting, date math, or classification.
+
+That buys two things:
+
+- **A ~90% smaller payload.** The raw Recollect response is ~10 KB of mostly-unused flag metadata
+  (colors, icon URIs, voice and HTML messages). The views receive ~1 KB.
+- **A correct "days until pickup."** It used to be computed in Liquid as `(t2 - t1) / 86400`
+  against `"now"` — the *server's* clock, in UTC. For a user in Sacramento (UTC-7) that rolls over
+  at 5 PM local, so an evening glance at the display could read "Today" for a pickup that's
+  actually tomorrow. The transform resolves the user's local calendar date from
+  `trmnl.user.utc_offset` first, then subtracts whole UTC-midnights, so DST can't skew it either.
+
+What the views get:
+
+```jsonc
+{
+  "has_pickups": true,
+  "area": "Durham",                  // from the API, used when Display Address is blank
+  "today": "2026-07-24",             // the user's local date
+  "next":     { "date": "2026-07-30", "long": "Thursday, July 30", "medium": "Thu, Jul 30",
+                "short": "Jul 30", "days_until": 6,
+                "types": [{ "label": "Blue Box", "icon": 1 }] },
+  "upcoming": [ /* the next few collection days, same shape */ ],
+  "holidays": [ /* dated, may shift collection */ ],
+  "notices":  [ /* notification_with_date, e.g. street sweeping */ ]
+}
+```
+
+`icon` is an index into the table at the top of [`src/shared.liquid`](src/shared.liquid), so a view
+draws a bin with `{{ icons[type.icon] }}` and does no lookup work. If you reorder that table,
+reorder `ICON_ORDER` in the transform to match — a unit test cross-checks the two and fails on
+any mismatch, so you can't get it wrong silently.
 
 ### Collection types are detected, not hardcoded
 
@@ -66,8 +109,8 @@ Recollect's `flag.name` is **not** standardized across cities:
 | `flag.name` | `Garbage`, `Recycling`, `YardWaste` | `garbage`, `recycling`, `yardwaste`, `GreenBin` |
 | `flag.subject` | `null` | `"Garbage"`, `"Blue Box"`, `"Green Bin"` |
 
-So [`src/shared.liquid`](src/shared.liquid) classifies each type by downcased keyword substrings
-rather than exact names, and resolves a label in three stages:
+So the transform classifies each type by downcased keyword substrings rather than exact names, and
+resolves a label in three stages:
 `flag.subject` → a label derived from `flag.name` → a neutral fallback.
 
 That last part handles regional vocabulary. Canadian cities say "Green Bin" and "Blue Box"; US
@@ -86,8 +129,8 @@ cities say "Organics" and "Recycling" — whichever word the city itself used wi
 Note the ordering: `green waste` means *yard waste* in the US, so it's matched before `green` →
 organics. That one collision is why the keyword chain is order-sensitive — first match wins.
 
-To support another collection type, add a branch to that chain. It's the single place that
-knows about types; all four views call into it with the same four-line resolve block.
+To support another collection type, add a branch to `classify()` in the transform and an icon to
+the table in `shared.liquid`. That chain is the single place that knows about types.
 
 ## Develop locally
 
@@ -100,9 +143,36 @@ trmnlp serve
 ```
 
 [`.trmnlp.yml`](.trmnlp.yml) is preloaded with a Sacramento address so the preview has real data.
-Swap `calendar_url` for any Recollect city's link to test another municipality.
+Swap `calendar_url` for any Recollect city's link to test another municipality, and set
+`variables.trmnl.user.utc_offset` to your own offset so the day math matches your timezone.
 
 Views: `full`, `half_horizontal`, `half_vertical`, `quadrant`.
+
+### Tests
+
+The transform is covered by [`node --test`](test/transform.test.js) — no dependencies, and CI runs
+it before linting or pushing:
+
+```sh
+node --test test/*.test.js
+```
+
+[`test/fixtures/`](test/fixtures/) holds verbatim API responses from Sacramento and Durham. They're
+what keeps the classifier honest across the naming differences above, so prefer adding a fixture
+from a new city over hand-writing a mock. You can capture one with:
+
+```sh
+curl -H 'user-agent: TRMNL-Recollect-Schedule/1.0' \
+  'https://api.recollect.net/api/places/<place_id>/services/<service_id>/events?nomerge=1&hide=reminder_only&after=2026-07-24&before=2026-08-24&locale=en'
+```
+
+You can also run the transform standalone against any saved response, to see exactly what the
+views would receive:
+
+```sh
+node test/run-transform.js test/fixtures/durham.json
+node test/run-transform.js test/fixtures/durham.json -18000   # as a UTC-5 user
+```
 
 ### Discoverability
 
