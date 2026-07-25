@@ -16,6 +16,7 @@ const { run, classify, parseDay, localToday, humanize, ICON_ORDER } = require(".
 
 const sacramento = require("./fixtures/sacramento.json");
 const durham = require("./fixtures/durham.json");
+const nashville = require("./fixtures/nashville.json");
 
 /** Freeze the clock so day-math assertions don't drift. */
 function at(utcMs, fn) {
@@ -158,6 +159,64 @@ test("separates pickups, holidays and dated notices", () => {
 
   const withHoliday = at(Date.UTC(2026, 6, 24), () => run(durham));
   assert.equal(withHoliday.holidays[0].label, "Civic Holiday");
+});
+
+test("a seasonal service months away still surfaces (Nashville brush)", () => {
+  // Brush runs ~3x/year. It is never part of the next collection day, so
+  // without the schedule roster it renders nowhere at all.
+  const result = at(Date.UTC(2026, 6, 24), () => run(nashville));
+  assert.deepEqual(labels(result), ["Garbage", "Recycling"], "weekly bins unchanged");
+
+  const brush = result.schedule.find((s) => s.label === "Brush");
+  assert.ok(brush, "brush must appear in the schedule roster");
+  assert.equal(brush.date, "2026-10-28");
+  assert.ok(brush.days_until > 90, `still ${brush.days_until} days out`);
+  assert.equal(brush.in_next, false, "so a view knows to list it separately");
+  assert.equal(brush.icon, ICON_ORDER.indexOf("yard"), "brush is woody waste, not recycling");
+});
+
+test("schedule covers every service once, at its next date, sorted", () => {
+  const result = at(Date.UTC(2026, 6, 24), () => run(sacramento));
+  const byLabel = Object.fromEntries(result.schedule.map((s) => [s.label, s]));
+
+  assert.ok(byLabel["Garbage"].in_next, "types on the next collection day are marked");
+  assert.equal(byLabel["Street Sweeping"].kind, "notice", "notices ride along too");
+  assert.equal(byLabel["Street Sweeping"].icon, null, "a notice is not a bin");
+  assert.equal(byLabel["Street Sweeping"].in_next, false);
+
+  const labelsSeen = result.schedule.map((s) => s.label);
+  assert.equal(new Set(labelsSeen).size, labelsSeen.length, "one entry per service");
+
+  const days = result.schedule.map((s) => s.days_until);
+  assert.deepEqual(days, [...days].sort((a, b) => a - b), "sorted by next occurrence");
+});
+
+test("schedule reports the earliest occurrence, not whichever came first in the feed", () => {
+  const result = run({
+    events: [
+      { day: "2099-03-01", flags: [{ name: "Brush", event_type: "pickup" }] },
+      { day: "2099-01-15", flags: [{ name: "Brush", event_type: "pickup" }] },
+    ],
+  });
+  const brush = result.schedule.find((s) => s.label === "Brush");
+  assert.equal(brush.date, "2099-01-15");
+});
+
+test("woody services keep the city's own word but share the yard icon", () => {
+  const yard = ICON_ORDER.indexOf("yard");
+  for (const [name, label] of Object.entries({
+    brush: "Brush",
+    BrushCollection: "Brush",
+    LimbPickup: "Branches",
+    branches: "Branches",
+    ChristmasTrees: "Trees",
+    YardWaste: "Yard Waste",
+    Leaves: "Yard Waste",
+  })) {
+    const type = classify({ name });
+    assert.equal(type.label, label, `${name} -> ${label}`);
+    assert.equal(type.icon, yard, `${name} icon`);
+  }
 });
 
 test("a holiday that still lists pickups keeps both", () => {

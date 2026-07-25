@@ -34,6 +34,7 @@ const DAY_MS = 86400000;
 const MAX_HOLIDAYS = 3;
 const MAX_NOTICES = 3;
 const MAX_UPCOMING = 4;
+const MAX_SCHEDULE = 8;
 
 /** "2026-07-28" -> UTC-midnight epoch ms, or null if unparseable/impossible. */
 function parseDay(value) {
@@ -130,9 +131,15 @@ function classify(flag) {
   let key;
   let label;
 
-  if (includesAny(n, "yard", "leaf", "leav", "greenwaste", "green waste")) {
+  if (includesAny(n, "yard", "leaf", "leav", "greenwaste", "green waste", "brush", "limb", "branch", "tree", "wood")) {
     key = "yard";
-    label = "Yard Waste";
+    // Brush/limb runs are a distinct service from bagged yard waste — often
+    // only a few times a year — so keep the city's word for it rather than
+    // flattening everything woody into "Yard Waste".
+    if (n.includes("brush")) label = "Brush";
+    else if (includesAny(n, "limb", "branch")) label = "Branches";
+    else if (n.includes("tree")) label = "Trees";
+    else label = "Yard Waste";
   } else if (n.includes("pumpkin")) {
     key = "pumpkin";
     label = "Pumpkins";
@@ -181,7 +188,17 @@ function run(input) {
   const pickupsByDay = new Map();
   const holidays = [];
   const notices = [];
+  // label -> earliest upcoming occurrence of that service. This is what makes
+  // rare types visible: brush, street sweeping, bulk pickup and the like may
+  // run only a few times a year, so they never appear in the next collection
+  // day, yet "when is brush?" is exactly what someone wants off a display.
+  const serviceFirstSeen = new Map();
   let area = "";
+
+  const noteService = (label, icon, kind, ms) => {
+    const seen = serviceFirstSeen.get(label);
+    if (!seen || ms < seen.ms) serviceFirstSeen.set(label, { ms, label, icon, kind });
+  };
 
   for (const event of events) {
     // Parsed JSON can still hold nulls and wrong types anywhere. A malformed
@@ -232,9 +249,12 @@ function run(input) {
         // nomerge=1 splits one collection day across several events, and a day
         // can repeat a type; key by label so each bin is drawn once.
         if (!types.has(type.label)) types.set(type.label, type);
+        noteService(type.label, type.icon, "pickup", ms);
       } else if (flag.event_type === "notification_with_date") {
         // e.g. Sacramento's street sweeping — dated, but not a bin at the curb.
-        notices.push({ ms, label: labelOf(flag, "Notice") });
+        const label = labelOf(flag, "Notice");
+        notices.push({ ms, label });
+        noteService(label, null, "notice", ms);
       }
     }
   }
@@ -252,6 +272,24 @@ function run(input) {
 
   const byDate = (a, b) => a.ms - b.ms;
 
+  // Every distinct service in the window, each with its next date. Types that
+  // are part of the next collection day are marked so a view can list only the
+  // ones it isn't already drawing as bins.
+  const nextTypeLabels = new Set(
+    pickupsByDay.size ? [...pickupsByDay.entries()].sort((a, b) => a[0] - b[0])[0][1].keys() : [],
+  );
+  const schedule = [...serviceFirstSeen.values()]
+    .sort(byDate)
+    .slice(0, MAX_SCHEDULE)
+    .map((service) =>
+      describe(service.ms, {
+        label: service.label,
+        icon: service.icon,
+        kind: service.kind,
+        in_next: nextTypeLabels.has(service.label),
+      }),
+    );
+
   return {
     // Preserved so `trmnl.*` keeps working in the views — the return value
     // replaces the merge data wholesale.
@@ -262,6 +300,7 @@ function run(input) {
     has_pickups: pickupDays.length > 0,
     next: pickupDays[0] || null,
     upcoming: pickupDays.slice(1, 1 + MAX_UPCOMING),
+    schedule,
     holidays: holidays.sort(byDate).slice(0, MAX_HOLIDAYS).map((h) => describe(h.ms, { label: h.label })),
     notices: notices.sort(byDate).slice(0, MAX_NOTICES).map((n) => describe(n.ms, { label: n.label })),
   };

@@ -46,13 +46,22 @@ in src/transform.js. This view only lays out what it is handed.
     Set containers curbside the night before.
   </div>
 
-  {%- comment -%} Dated notices, e.g. street sweeping (move your car to avoid a ticket) {%- endcomment -%}
-  {% if notices.size > 0 %}
-  {% assign notice = notices.first %}
-  <div class="flex flex--row flex--center-x gap-xs mt-xs">
-    <span class="label label--inverted">
-      {{ notice.label }}: {{ notice.medium }}{% if notice.days_until <= 7 %} ({{ notice.days_until }}d){% endif %}
-    </span>
+  {%- comment -%}
+    Every other service the calendar carries, with its next date — seasonal
+    pickups like brush or bulk that fall outside the next collection day, plus
+    dated notices like street sweeping. `in_next` marks the types already drawn
+    as bins above, so this lists only what isn't shown yet.
+  {%- endcomment -%}
+  {%- capture service_chips -%}
+    {%- for service in schedule -%}
+      {%- unless service.in_next -%}
+        <span class="label label--inverted">{{ service.label }}: {{ service.medium }}{% if service.days_until <= 14 %} ({{ service.days_until }}d){% endif %}</span>
+      {%- endunless -%}
+    {%- endfor -%}
+  {%- endcapture -%}
+  {% if service_chips != blank %}
+  <div class="flex flex--row flex--center-x flex--wrap gap-xs mt-xs">
+    {{ service_chips }}
   </div>
   {% endif %}
 

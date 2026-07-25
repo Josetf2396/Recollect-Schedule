@@ -90,10 +90,29 @@ What the views get:
                 "short": "Jul 30", "days_until": 6,
                 "types": [{ "label": "Blue Box", "icon": 1 }] },
   "upcoming": [ /* the next few collection days, same shape */ ],
+  "schedule": [ /* every distinct service in the window, at its next date */
+                { "label": "Brush", "icon": 3, "kind": "pickup", "date": "2026-10-28",
+                  "days_until": 96, "in_next": false } ],
   "holidays": [ /* dated, may shift collection */ ],
   "notices":  [ /* notification_with_date, e.g. street sweeping */ ]
 }
 ```
+
+### Rare and seasonal services
+
+Some services run only a few times a year — Nashville collects **brush** roughly three times
+annually, and street sweeping, bulk pickup and leaf collection behave the same way. They are
+never part of the next collection day, so nothing about them would ever reach the screen.
+
+`schedule` is the answer: one entry per distinct service in the window, at its **next**
+occurrence, sorted soonest-first. `in_next` marks the ones already drawn as bins, so the full
+view lists only what it isn't showing yet — `Brush: Wed, Oct 28` alongside
+`Street Sweeping: Wed, Aug 12`. Notices ride in the same list (`kind: "notice"`, `icon: null`),
+so it doesn't matter whether a city models something as a pickup or a notification.
+
+This is also why the poll window is **120 days** rather than 30: a month-long window
+essentially never contains a quarterly service. The wider window costs ~20 KB of API response,
+all of it discarded server-side — the merge data stays ~1.6 KB.
 
 `icon` is an index into the table at the top of [`src/shared.liquid`](src/shared.liquid), so a view
 draws a bin with `{{ icons[type.icon] }}` and does no lookup work. If you reorder that table,
