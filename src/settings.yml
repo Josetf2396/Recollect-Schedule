@@ -9,7 +9,7 @@ serverless_language: node
 polling_url: 'https://api.recollect.net/api/places/{{ calendar_url | split: "/places/" | last | split: "/" | first }}/services/{{ calendar_url | split: "/services/" | last | split: "/" | first }}/events?nomerge=1&hide=reminder_only&after={{ "now" | date: "%s" | minus: 86400 | date: "%Y-%m-%d" }}&before={{ "now" | date: "%s" | plus: 10368000 | date: "%Y-%m-%d" }}&locale=en'
 polling_headers: user-agent=TRMNL-Recollect-Schedule/1.0
 polling_body: ''
-id: 392941
+id: 394530
 oauth_enabled: 'false'
 oauth_pkce_enabled: 'no'
 oauth_authorize_url: ''
