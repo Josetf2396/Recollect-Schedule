@@ -6,14 +6,11 @@ All filtering, sorting, day math and type classification happen once per poll
 in src/transform.js. This view only lays out what it is handed.
 {% endcomment %}
 
+<div class="layout layout--col layout--center-x layout--center-y gap-lg">
 {% unless has_pickups %}
-{%- comment -%} No upcoming events {%- endcomment -%}
-<div class="layout layout--col layout--center gap">
   <div class="title">No Upcoming Pickups</div>
   <div class="description">Check back later for your schedule</div>
-</div>
 {% else %}
-<div class="layout layout--col layout--center-x layout--center-y gap-lg">
   {%- comment -%} Typography hierarchy: title--small + value {%- endcomment -%}
   <div class="flex flex--col flex--center-x gap-xxs">
     <div class="title--small">Next Pickup</div>
@@ -78,12 +75,13 @@ in src/transform.js. This view only lays out what it is handed.
     </div>
   </div>
   {% endif %}
+{% endunless %}
 </div>
 
 <div class="title_bar">
   <img class="image" src="data:image/svg+xml;base64,{{ icon_recycling }}" alt="" />
   <span class="title">Waste Collection</span>
-  <span class="subtitle">{{ address | default: area }}</span>
-  <span class="instance">{{ next.medium }}</span>
+  {%- assign bar_subtitle = address | default: area -%}
+  {% if bar_subtitle != blank %}<span class="subtitle">{{ bar_subtitle }}</span>{% endif %}
+  {% if has_pickups %}<span class="instance">{{ next.medium }}</span>{% endif %}
 </div>
-{% endunless %}

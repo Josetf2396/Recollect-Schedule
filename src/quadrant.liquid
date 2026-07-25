@@ -1,16 +1,7 @@
-{% comment %}
-  Recollect Schedule Plugin - Quarter View
-  Ultra-compact for 2x2 grid mashups - optimized for icon-first display
-
-  Data is precomputed in src/transform.js; this view only lays it out.
-{% endcomment %}
-
+<div class="layout layout--col {% if has_pickups %}layout--top{% else %}layout--center{% endif %} gap">
 {% unless has_pickups %}
-  <div class="layout layout--col layout--center gap">
     <div class="description">No Pickups</div>
-  </div>
 {% else %}
-  <div class="layout layout--col layout--top gap">
     {%- comment -%} Compact header {%- endcomment -%}
     <div class="flex flex--col flex--center-x gap-xxs mt-xs">
       <div class="title--small">Pickup</div>
@@ -36,11 +27,11 @@
     {% if notices.size > 0 %}
       <div class="description text--sm">{{ notices.first.label }}: {{ notices.first.short }}</div>
     {% endif %}
-  </div>
-
-  <div class="title_bar">
-    <img class="image" src="data:image/svg+xml;base64,{{ icon_recycling }}" alt="" />
-    <span class="title">Waste Collection</span>
-    <span class="instance">{{ next.short }}</span>
-  </div>
 {% endunless %}
+</div>
+
+<div class="title_bar">
+  <img class="image" src="data:image/svg+xml;base64,{{ icon_recycling }}" alt="" />
+  <span class="title">Waste Collection</span>
+  {% if has_pickups %}<span class="instance">{{ next.short }}</span>{% endif %}
+</div>
