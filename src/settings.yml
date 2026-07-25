@@ -48,5 +48,4 @@ custom_fields:
   placeholder: 915 I St, Sacramento
   optional: true
 name: Recollect Schedule
-description: Never miss a pickup — next garbage, recycling, and yard waste dates for any city on Recollect.
 refresh_interval: 60
