@@ -6,13 +6,13 @@ All filtering, sorting, day math and type classification happen once per poll
 in src/transform.js. This view only lays out what it is handed.
 {% endcomment %}
 
-<div class="layout layout--col layout--center-x layout--center-y gap-lg">
+<div class="layout layout--col layout--center-x layout--center-y gap--large">
 {% unless has_pickups %}
   <div class="title">No Upcoming Pickups</div>
   <div class="description">Check back later for your schedule</div>
 {% else %}
   {%- comment -%} Typography hierarchy: title--small + value {%- endcomment -%}
-  <div class="flex flex--col flex--center-x gap-xxs">
+  <div class="flex flex--col flex--center-x gap--small">
     <div class="title--small">Next Pickup</div>
     <div class="value lg:value--xlarge">
       {% if next.days_until == 0 %}
@@ -27,9 +27,9 @@ in src/transform.js. This view only lays out what it is handed.
   </div>
 
   {%- comment -%} Icon Display - Using Framework flex classes {%- endcomment -%}
-  <div class="flex flex--row flex--center-x flex--wrap portrait:flex--wrap gap-lg px-lg py-lg bg-1">
+  <div class="flex flex--row flex--center-x flex--wrap portrait:flex--wrap gap--large px--4 py--4 bg--gray-75">
     {% for type in next.types %}
-    <div class="flex flex--col flex--center-x gap-xs">
+    <div class="flex flex--col flex--center-x gap--small">
       <div>
         <img src="data:image/svg+xml;base64,{{ icons[type.icon] }}" alt="{{ type.label }}" width="136" height="136" />
       </div>
@@ -57,15 +57,15 @@ in src/transform.js. This view only lays out what it is handed.
     {%- endfor -%}
   {%- endcapture -%}
   {% if service_chips != blank %}
-  <div class="flex flex--row flex--center-x flex--wrap gap-xs mt-xs">
+  <div class="flex flex--row flex--center-x flex--wrap gap--small mt--1">
     {{ service_chips }}
   </div>
   {% endif %}
 
   {%- comment -%} Upcoming Holidays Display {%- endcomment -%}
   {% if holidays.size > 0 %}
-  <div class="flex flex--col flex--center-x gap-xs mt-xs">
-    <div class="flex flex--row flex--center-x flex--wrap gap-xs">
+  <div class="flex flex--col flex--center-x gap--small mt--1">
+    <div class="flex flex--row flex--center-x flex--wrap gap--small">
       {% for holiday in holidays %}
       <span class="label label--inverted">
         {{ holiday.label }}: {{ holiday.short }}
@@ -81,7 +81,12 @@ in src/transform.js. This view only lays out what it is handed.
 <div class="title_bar">
   <img class="image" src="data:image/svg+xml;base64,{{ icon_recycling }}" alt="" />
   <span class="title">Waste Collection</span>
-  {%- assign bar_subtitle = address | default: area -%}
-  {% if bar_subtitle != blank %}<span class="subtitle">{{ bar_subtitle }}</span>{% endif %}
-  {% if has_pickups %}<span class="instance">{{ next.medium }}</span>{% endif %}
+  {%- comment -%}
+    The framework title_bar knows image/title/instance only — there is no
+    .subtitle. One instance span: location first, next-pickup date as the
+    fallback (the date already headlines the body).
+  {%- endcomment -%}
+  {%- assign bar_instance = address | default: area -%}
+  {%- if bar_instance == blank and has_pickups -%}{%- assign bar_instance = next.medium -%}{%- endif -%}
+  {% if bar_instance != blank %}<span class="instance">{{ bar_instance }}</span>{% endif %}
 </div>

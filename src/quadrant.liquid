@@ -3,7 +3,7 @@
     <div class="description">No Pickups</div>
 {% else %}
     {%- comment -%} Compact header {%- endcomment -%}
-    <div class="flex flex--col flex--center-x gap-xxs mt-xs">
+    <div class="flex flex--col flex--center-x gap--small mt--1">
       <div class="title--small">Pickup</div>
       <div class="value value--small lg:value--base">
         {% if next.days_until == 0 %}Today
@@ -14,18 +14,18 @@
     </div>
 
     {%- comment -%} Icon row with compact spacing and labels {%- endcomment -%}
-    <div class="flex flex--row flex--wrap flex--center-x gap-xs">
+    <div class="flex flex--row flex--wrap flex--center-x gap--small">
       {% for type in next.types %}
-        <div class="flex flex--col flex--center-x gap-xxs">
+        <div class="flex flex--col flex--center-x gap--small">
           <img src="data:image/svg+xml;base64,{{ icons[type.icon] }}" alt="{{ type.label }}" width="72" height="72" />
-          <div class="description text--sm">{{ type.label }}</div>
+          <div class="description text--small">{{ type.label }}</div>
         </div>
       {% endfor %}
     </div>
 
     {%- comment -%} Next dated notice, e.g. street sweeping {%- endcomment -%}
     {% if notices.size > 0 %}
-      <div class="description text--sm">{{ notices.first.label }}: {{ notices.first.short }}</div>
+      <div class="description text--small">{{ notices.first.label }}: {{ notices.first.short }}</div>
     {% endif %}
 {% endunless %}
 </div>
