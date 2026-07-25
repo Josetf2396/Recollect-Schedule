@@ -6,7 +6,7 @@
 {% endcomment %}
 
 {% unless has_pickups %}
-  <div class="flex flex--col flex--center gap">
+  <div class="layout layout--col layout--center gap">
     <div class="title">No Pickups</div>
     <div class="description">Check schedule</div>
   </div>
@@ -15,7 +15,7 @@
     {%- comment -%} Typography hierarchy: title--small + value {%- endcomment -%}
     <div class="flex flex--col flex--center-x gap-xxs mt-xs">
       <div class="title--small">Next Pickup</div>
-      <div class="value">
+      <div class="value lg:value--large">
         {% if next.days_until == 0 %}Today
         {% elsif next.days_until == 1 %}Tomorrow
         {% else %}{{ next.days_until }} days
@@ -43,7 +43,7 @@
   </div>
 
   <div class="title_bar">
-    <img src="data:image/svg+xml;base64,{{ icon_recycling }}" width="24" height="24" alt="" />
+    <img class="image" src="data:image/svg+xml;base64,{{ icon_recycling }}" alt="" />
     <span class="title">Waste Collection</span>
     <span class="instance">{{ next.short }}</span>
   </div>
